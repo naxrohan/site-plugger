@@ -1,17 +1,32 @@
 <div class="wrap">
     <div id="icon-options-general" class="icon32"></div>
-    <h1>Theme Options</h1>
+    <?php settings_errors(); ?>
+
+    <?php
+        if( isset( $_GET[ 'tab' ] ) ) {
+            $active_tab = $_GET[ 'tab' ];
+        } else {
+            $active_tab = "creds_options";
+        }
+    ?>    
+    <h2 class="nav-tab-wrapper">
+        <a href="?page=s3-config&tab=creds_options" class="nav-tab <?php echo $active_tab == 'creds_options' ? 'nav-tab-active' : ''; ?>">AWS S3 bucket details</a>
+        <a href="?page=s3-config&tab=folder_options" class="nav-tab <?php echo $active_tab == 'folder_options' ? 'nav-tab-active' : ''; ?>">Local & Cloud Folders</a>
+    </h2>
+    
     <form method="post" action="options.php">
         <?php
-        //add_settings_section callback is displayed here. For every new section we need to call settings_fields.
-        settings_fields("bucket_section");
-        settings_fields("creds_section");
-
-        // all the add_settings_field callbacks is displayed here
-        do_settings_sections("s3-config");
-
-        // Add the submit button to serialize the options
+        if($active_tab == "creds_options"){
+            settings_fields("creds_section");
+            do_settings_sections("s3-config");
+        }else {
+            settings_fields("folder_section");
+            do_settings_sections("folder-config");
+        }
+        
         submit_button();
+    
         ?>          
     </form>
+
 </div>
