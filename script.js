@@ -6,9 +6,19 @@ jQuery(document).ready(function($) {
 	
         jQuery("#start-scan").click( function(){
         
-            jQuery.post(ajax_object.ajax_url, data, function(response) {
-		alert('Got this from the server: ' + response);
-		
+            jQuery.post(
+                ajax_object.ajax_url, 
+                data, 
+                function(response) {
+                    response = jQuery.parseJSON(response);
+                    
+                    alert('Got this from the server: ' + response);
+                    console.log(response);
+                    console.log(response.error);
+                }
+            ).fail(function(response) {
+                alert( "connection error" );
+                console.log(response);
             });
         });
         

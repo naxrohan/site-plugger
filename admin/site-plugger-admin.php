@@ -9,7 +9,7 @@
     <h3><?php echo $tab_name; ?></h3>
 
 <?php
-submit_button("Start", "primary large", "start-scan");
+    require_once $tab_file_name;
 ?>          
 
 </div>

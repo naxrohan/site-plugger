@@ -18,6 +18,9 @@ add_action('admin_init', 'site_plugger_add_conf_fields');
 add_action( 'admin_footer', 'site_plugger_action_javascript' ); // Write our JS below here
 add_action( 'wp_ajax_site_plugger_action', 'site_plugger_action' );
 
+register_activation_hook( __FILE__, 'site_plugger_install' );
+
+
 function site_plugger_action_javascript() {
     if ( is_admin() ) {
         wp_enqueue_script(
@@ -56,12 +59,12 @@ function site_plugger_action() {
         $scanner->save_bucket_s3 = get_option('bucket_name');
         $scanner->s3_region = get_option('bucket_region');
         $scanner->s3_prefix = "testing";
-
+        
         $action_step = $_POST['action_step'];
 
         switch ($action_step) {
             case 'scanner':
-//                 $scanner->run_plugger("scan_pages");
+                $scanner->run_plugger("scan_pages");
 
                 break;
             case 'saver':
@@ -108,18 +111,19 @@ function site_plugger_admin_page(){
         $active_tab = "scanner";
     }
     
-    switch($active_tab){
-      default: case 'scanner':
-          $tab_name = "Scan Site for new pages";
-
-          break;  
-      case 'saver': 
-          $tab_name = "Save Selected pages";
-          break;  
-      case 'bucket': 
-          $tab_name = "Move pages to S3 bucket";
-          break;  
-
+    switch ($active_tab) {
+        default: case 'scanner':
+            $tab_name = "Scan Site for new pages";
+            $tab_file_name = "admin-scanner.php";
+            break;
+        case 'saver':
+            $tab_name = "Save Selected pages";
+            $tab_file_name = "admin-saver.php";
+            break;
+        case 'bucket':
+            $tab_name = "Move pages to S3 bucket";
+            $tab_file_name = "admin-bucket.php";
+            break;
     }
 
 
@@ -174,6 +178,21 @@ function site_plugger_add_conf_fields(){
     add_settings_field('s3_credentials','Credentials','s3_credentials_form_element',"s3-config",'creds_section' );
 }
 
+function site_plugger_install(){
+    global $wpdb;
 
+    $table_name = $wpdb->prefix . "site_plugger_logs";    
+
+    $sql = "CREATE TABLE $table_name (
+        `id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        `url` text NOT NULL,
+        `added` datetime NOT NULL ON UPDATE CURRENT_TIMESTAMP,
+        `state` tinyint NOT NULL DEFAULT '0'
+      ) ENGINE='InnoDB' COLLATE 'latin1_swedish_ci';";
+
+    require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
+
+    dbDelta($sql);
+}
 
 ?>

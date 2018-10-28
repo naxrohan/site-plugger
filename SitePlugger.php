@@ -48,14 +48,15 @@ class SitePlugger {
 
     private $log_file;
     //Log file name
-    private $log_file_name = "log_.txt";
+    private $log_file_name = "scanner_log_.txt";
+    private $plugin_path = "";
 
 
     public function __construct() {
         error_reporting(E_ALL);
         ini_set('display_errors', 1);
 
-        
+        $this->plugin_path = getcwd() ."/../wp-content/plugins/site-plugger/";
     }
 
     public function __destruct() {
@@ -63,19 +64,24 @@ class SitePlugger {
             fclose($this->log_file);
         }
     }
-
+    
+    function js_op($msg){
+        echo json_encode($msg);
+        exit;
+    }
+    
     function setSave_directory($save_directory) {
-        $this->save_directory = getcwd() ."/". $save_directory;
+        $this->save_directory = $this->plugin_path . $save_directory;
 
         if($this->folder_exist($this->save_directory)){
             if(!mkdir($this->save_directory,0777, true)){
-                echo "\n Error creating folder:$this->save_directory";
+                $this->js_op(["error"=>"Error creating folder:$this->save_directory"]);
                 exit();
             }else {
-                echo "\n Created folder:$this->save_directory";
+                //echo "\n Created folder:$this->save_directory";
             }
         }else{
-            echo "\n  Folder already exists:1: $this->save_directory";
+            //echo "\n  Folder already exists:1: $this->save_directory";
         }
     }
 
@@ -86,22 +92,26 @@ class SitePlugger {
 
 
         } catch (ClientException $ex) {
-            var_dump($ex->getMessage());
+            $this->js_op(["error"=> $ex->getMessage()]);
         } catch (ConnectException $ex) {
-            var_dump($ex->getMessage());
+            $this->js_op(["error"=> $ex->getMessage()]);
         } catch (BadResponseException $ex) {
-            var_dump($ex->getMessage());
+            $this->js_op(["error"=> $ex->getMessage()]);
         } catch (RequestException $ex) {
-            var_dump($ex->getMessage());
+            $this->js_op(["error"=> $ex->getMessage()]);
         } catch (TooManyRedirectsException $ex) {
-            var_dump($ex->getMessage());
+            $this->js_op(["error"=> $ex->getMessage()]);
         } catch (ServerException $ex) {
-            var_dump($ex->getMessage());
+            $this->js_op(["error"=> $ex->getMessage()]);
         }
     }
 
     public function status_code(){
-        return $this->response->getStatusCode();
+        if(isset($this->response)){
+            return $this->response->getStatusCode();
+        }else {
+            return false;
+        }
     }
 
     public function get_body(){
@@ -145,7 +155,7 @@ class SitePlugger {
             }
 
         } else {
-            echo "\n Error 2";
+            //echo "\n Error 2";
         }
 
         return array_unique($uniq_array);
@@ -189,7 +199,7 @@ class SitePlugger {
             }
 
         } else {
-            echo "\n Error 2";
+            //echo "\n Error 4";
         }
 
         return array_unique($uniq_array);
@@ -201,9 +211,9 @@ class SitePlugger {
 
       if($done > 0){
         $content = $r_content;
-        echo "\n replace = $done";
+        //echo "\n replace = $done";
       }else{
-        "\n no replaced";
+        //echo "\n no replaced";
       }
       return $content;
     }
@@ -215,16 +225,16 @@ class SitePlugger {
      */
     private function scan_pages($page_url, $deep = 0) {
 
-        echo "\n rec=>".$deep;
+        //echo "\n rec=>".$deep;
         sleep(rand(1,2));
 
-        echo "\n Page={$page_url}";
+        //echo "\n Page={$page_url}";
 
         $this->make_simple_get($page_url);
 
         $status_code = $this->status_code();
 
-        echo "\n Status Code : $status_code";
+        //echo "\n Status Code : $status_code";
         if($status_code == 200) {
             $page_content = $this->get_body();
 
@@ -240,8 +250,7 @@ class SitePlugger {
             $page_links = $this->extract_hrefs($page_content);
            //$image_links = $this->extract_img($page_content);
 
-            echo "\n found pages=";var_dump(count($page_links));
-            echo "\n found images=";var_dump(count($image_links));
+            //echo "\n found pages=";var_dump(count($page_links));
             foreach ($page_links as $j => $page_link){
 
                 if(!in_array($page_link, $this->all_urls) &&
@@ -251,12 +260,15 @@ class SitePlugger {
                     $this->all_urls[] = $page_link;
                     $this->scan_pages($page_link, ++$deep);
                 } else {
-                    echo "\n Skipped: {$page_link}";
+                    //echo "\n Skipped: {$page_link}";
                 }
             }
-            echo "\n unique=";var_dump(count($this->all_urls));
+            //echo "\n unique=";var_dump(count($this->all_urls));
+            if(count($this->all_urls) == 0){
+                $this->js_op(["success"=>"Scanning Complete.."]);
+            }
         }else {
-            echo "\n Error 1-> {$status_code}";
+            $this->js_op(["error"=>"Error 1-> {$status_code}"]);
         }
     }
 
@@ -278,7 +290,7 @@ class SitePlugger {
                 $this->save_file_and_path($line, $content);
             }
         }else {
-            echo "\n Log file empty!!";
+            $this->js_op(["error"=>"Log file empty!!"]);
         }
     }
 
@@ -330,9 +342,9 @@ class SitePlugger {
             
             
         } catch (AwsException $ex) {
-            var_dump($ex->getMessage());
+            $this->js_op(["error"=> $ex->getMessage()]);
         } catch (CredentialsException $ex) {
-            var_dump($ex->getMessage());
+            $this->js_op(["error"=> $ex->getMessage()]);
         }
     }
 
@@ -340,16 +352,17 @@ class SitePlugger {
         switch($mode){
             
             case "scan_pages":
+//                var_dump($mode);
                 $this->client = new Client();
-                $this->log_file = fopen($this->log_file_name, "a");
+                $this->log_file = fopen($this->plugin_path . $this->log_file_name, "a");
                 $this->logged_urls = $this->read_log_lines();
-        
+                
                 $this->scan_pages($this->base_site, 0);
                 break;
             
             case "logger_save":
                 $this->client = new Client();
-                $this->log_file = fopen($this->log_file_name, "a");
+                $this->log_file = fopen($this->plugin_path . $this->log_file_name, "a");
                 $this->logged_urls = $this->read_log_lines();
         
                 $this->logger_save();
@@ -367,13 +380,15 @@ class SitePlugger {
     }
 
     public function read_log_lines(){
-        $read = fopen($this->log_file_name, "r");
-        $status = fread($read, filesize($this->log_file_name));
+        $read = fopen($this->plugin_path . $this->log_file_name, "r");
+        $log_file_size = filesize($this->plugin_path . $this->log_file_name) > 0?
+                filesize($this->plugin_path . $this->log_file_name) : 0;
+        $status = fread($read, $log_file_size);
         if($status != false){
             fclose($read);
             return array_unique(explode("\n", $status));
         }else {
-            echo "\n no log exist!!!";
+            $this->js_op(["error"=>"no file log exist!!!"]);
             return [];
         }
 
@@ -394,12 +409,12 @@ class SitePlugger {
 
                 if($this->folder_exist($rest_folder_path)){
                     if(!mkdir($rest_folder_path,0777, true)){
-                        echo "\n Error creating folder: {$rest_folder_path}";
+                        //echo "\n Error creating folder: {$rest_folder_path}";
                     }else {
-                        echo "\n Success creating folder: {$rest_folder_path}";
+                        //echo "\n Success creating folder: {$rest_folder_path}";
                     }
                 }else{
-                    echo "\n  Folder already exists:2: $this->save_directory";
+                    //echo "\n  Folder already exists:2: $this->save_directory";
                    // exit;
                 }
             }else {
@@ -418,12 +433,12 @@ class SitePlugger {
         $_local_path_file = $uri . $filename. $this->save_ext;
         $file_save = fopen($_local_path_file, "w+");
 
-        echo "\n len=".strlen($content);
+        //echo "\n len=".strlen($content);
 
         if(!fwrite($file_save, $content, strlen($content))){
-            echo "\n file save error: {$_local_path_file}";
+            //echo "\n file save error: {$_local_path_file}";
         }else {
-            echo "\n file save success: {$_local_path_file}";
+            //echo "\n file save success: {$_local_path_file}";
         }
 
         fclose($file_save);
