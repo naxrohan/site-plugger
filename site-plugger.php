@@ -113,6 +113,14 @@ function site_plugger_admin_page(){
     
     switch ($active_tab) {
         default: case 'scanner':
+            
+            $scanner = new SitePlugger();
+            $log_lines = $scanner->read_log_lines(false);
+            
+            $total_log_lines = count($log_lines);
+            $log_file_name = $scanner->log_file_name;
+            $site_name = get_option('base_site');
+            
             $tab_name = "Scan Site for new pages";
             $tab_file_name = "admin-scanner.php";
             break;

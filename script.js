@@ -6,18 +6,31 @@ jQuery(document).ready(function($) {
 	
         jQuery("#start-scan").click( function(){
         
+        jQuery("#scan-status").html("running....");
             jQuery.post(
                 ajax_object.ajax_url, 
                 data, 
                 function(response) {
                     response = jQuery.parseJSON(response);
-                    
-                    alert('Got this from the server: ' + response);
+                    if(response.flag == 'true'){
+                        
+                        alert('Error Received:' + response.error);
+                        
+                        jQuery("#scan-status").html(response.error);
+                        
+                    }else if(response.flag == 'false') {
+                        
+                        alert('Success Received:' + response.success);
+                        
+                        jQuery("#scan-status").html(response.success);
+                    }
+ 
                     console.log(response);
-                    console.log(response.error);
+//                    console.log(response.error);
                 }
             ).fail(function(response) {
                 alert( "connection error" );
+                jQuery("#scan-status").html(response);
                 console.log(response);
             });
         });

@@ -48,7 +48,7 @@ class SitePlugger {
 
     private $log_file;
     //Log file name
-    private $log_file_name = "scanner_log_.txt";
+    public $log_file_name = "scanner_log_.txt";
     private $plugin_path = "";
 
 
@@ -65,7 +65,8 @@ class SitePlugger {
         }
     }
     
-    function js_op($msg){
+    function js_op($msg,$error = false){
+        $msg['flag'] = ($error == false) ? 'false' : 'true';
         echo json_encode($msg);
         exit;
     }
@@ -75,7 +76,7 @@ class SitePlugger {
 
         if($this->folder_exist($this->save_directory)){
             if(!mkdir($this->save_directory,0777, true)){
-                $this->js_op(["error"=>"Error creating folder:$this->save_directory"]);
+                $this->js_op(["error"=>"Error creating folder:$this->save_directory"], true);
                 exit();
             }else {
                 //echo "\n Created folder:$this->save_directory";
@@ -92,17 +93,17 @@ class SitePlugger {
 
 
         } catch (ClientException $ex) {
-            $this->js_op(["error"=> $ex->getMessage()]);
+            $this->js_op(["error"=> $ex->getMessage()],true);
         } catch (ConnectException $ex) {
-            $this->js_op(["error"=> $ex->getMessage()]);
+            $this->js_op(["error"=> $ex->getMessage()],true);
         } catch (BadResponseException $ex) {
-            $this->js_op(["error"=> $ex->getMessage()]);
+            $this->js_op(["error"=> $ex->getMessage()],true);
         } catch (RequestException $ex) {
-            $this->js_op(["error"=> $ex->getMessage()]);
+            $this->js_op(["error"=> $ex->getMessage()],true);
         } catch (TooManyRedirectsException $ex) {
-            $this->js_op(["error"=> $ex->getMessage()]);
+            $this->js_op(["error"=> $ex->getMessage()],true);
         } catch (ServerException $ex) {
-            $this->js_op(["error"=> $ex->getMessage()]);
+            $this->js_op(["error"=> $ex->getMessage()],true);
         }
     }
 
@@ -265,10 +266,10 @@ class SitePlugger {
             }
             //echo "\n unique=";var_dump(count($this->all_urls));
             if(count($this->all_urls) == 0){
-                $this->js_op(["success"=>"Scanning Complete.."]);
+                $this->js_op(["success"=>"Scanning Complete"],false);
             }
         }else {
-            $this->js_op(["error"=>"Error 1-> {$status_code}"]);
+            $this->js_op(["error"=>"Error 1-> {$status_code}"],true);
         }
     }
 
@@ -290,7 +291,7 @@ class SitePlugger {
                 $this->save_file_and_path($line, $content);
             }
         }else {
-            $this->js_op(["error"=>"Log file empty!!"]);
+            $this->js_op(["error"=>"Log file empty!!"],true);
         }
     }
 
@@ -342,9 +343,9 @@ class SitePlugger {
             
             
         } catch (AwsException $ex) {
-            $this->js_op(["error"=> $ex->getMessage()]);
+            $this->js_op(["error"=> $ex->getMessage()],true);
         } catch (CredentialsException $ex) {
-            $this->js_op(["error"=> $ex->getMessage()]);
+            $this->js_op(["error"=> $ex->getMessage()],true);
         }
     }
 
@@ -379,16 +380,27 @@ class SitePlugger {
         fwrite($this->log_file, $link. "\n");
     }
 
-    public function read_log_lines(){
+    public function read_log_lines($show_error = true){
         $read = fopen($this->plugin_path . $this->log_file_name, "r");
         $log_file_size = filesize($this->plugin_path . $this->log_file_name) > 0?
                 filesize($this->plugin_path . $this->log_file_name) : 0;
         $status = fread($read, $log_file_size);
         if($status != false){
             fclose($read);
-            return array_unique(explode("\n", $status));
+            $allreadline = explode("\n", $status);
+            if (is_array($allreadline)) {
+                return array_unique($allreadline);
+            } else {
+                if ($show_error == true) {
+                    $this->js_op(["error" => "no file log exist!!!"], true);
+                }
+                return [];
+            }
         }else {
-            $this->js_op(["error"=>"no file log exist!!!"]);
+            if($show_error == true){
+                $this->js_op(["error"=>"no file log exist!!!"],true);
+            }
+
             return [];
         }
 
