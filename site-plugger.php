@@ -34,7 +34,7 @@ function site_plugger_action_javascript() {
                     array(
                         'ajax_url' => admin_url('admin-ajax.php'), 
                         'run_type' => array(
-                            'scanner', 'saver', 'bucket'
+                            'scanner', 'loader','saver', 'bucket'
                         )
                     )
                 );
@@ -67,12 +67,47 @@ function site_plugger_action() {
                 $scanner->run_plugger("scan_pages");
 
                 break;
-            case 'saver':
-//                 $scanner->run_plugger("logger_save");
+            case 'loader':
+                
+                $log_lines = $scanner->read_log_lines(false);
+                if(count($log_lines) > 0){
+                    
+                    $plugger_logs = $wpdb->get_row( "SELECT * FROM wp_site_plugger_logs "
+                            . "ORDER BY id DESC", ARRAY_A );
+                    if(isset($plugger_logs) && count($plugger_logs) > 0){
+            
+                        foreach($log_lines as $i => $url_val){
+                           $mylink = $wpdb->get_row( "SELECT * FROM wp_site_plugger_logs "
+                                   . "WHERE url = $url_val" );
+                           if(isset($mylink) && count($mylink) > 0){
+                                $id= $wpdb->insert(
+                                        'wp_site_plugger_logs', 
+                                       array('url' => $url_val,'added' => date("Y-m-d H:i:s"),'state' => 0), 
+                                       array('%s','%d','%d')
+                                );
+                            }
+                        }                        
+                        $scanner->js_op(["success"=>"part link import Complete"],false);
+                    }else {
+                        foreach($log_lines as $i => $url_val){
+                            $id= $wpdb->insert(
+                                'wp_site_plugger_logs', 
+                                  array('url' => $url_val,'added' => date("Y-m-d H:i:s"),'state' => 0), 
+                                  array('%s','%d','%d')
+                            );
+                        }
+                        $scanner->js_op(["success"=>"full link import Complete"],false);
+                    }
+    
+                }
 
                 break;
+            
+            case 'saver':
+
+                break;
+            
             case 'bucket':
-//                $scanner->run_plugger("save_2_s3");
 
                 break;
         }
@@ -101,6 +136,7 @@ function site_plugger_admin_menu() {
  */
 function site_plugger_admin_page(){
     global $title;
+    global $wpdb;
 
     print '<div class="wrap">';
     print "<h1>$title</h1>";
@@ -125,6 +161,11 @@ function site_plugger_admin_page(){
             $tab_file_name = "admin-scanner.php";
             break;
         case 'saver':
+
+            $saved_links = $wpdb->get_results( "SELECT * FROM wp_site_plugger_logs "
+                            . "ORDER BY id ASC", ARRAY_A ,5);
+                    
+
             $tab_name = "Save Selected pages";
             $tab_file_name = "admin-saver.php";
             break;

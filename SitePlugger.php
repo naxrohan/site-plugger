@@ -65,7 +65,7 @@ class SitePlugger {
         }
     }
     
-    function js_op($msg,$error = false){
+    public function js_op($msg,$error = false){
         $msg['flag'] = ($error == false) ? 'false' : 'true';
         echo json_encode($msg);
         exit;
