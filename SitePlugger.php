@@ -30,7 +30,7 @@ class SitePlugger {
     public $save_bucket_s3 = "";
     public $s3_prefix = "";
     public $s3_region = "";
-    
+
     public $file_to_save = null;
 
     //Array containing all scanned URL's
@@ -64,13 +64,13 @@ class SitePlugger {
             fclose($this->log_file);
         }
     }
-    
+
     public function js_op($msg,$error = false){
         $msg['flag'] = ($error == false) ? 'false' : 'true';
         echo json_encode($msg);
         exit;
     }
-    
+
     function setSave_directory($save_directory) {
         $this->save_directory = $this->plugin_path . $save_directory;
 
@@ -303,18 +303,18 @@ class SitePlugger {
 
         try {
             $provider = CredentialProvider::defaultProvider();
-        
+
             $s3Client = new S3Client([
                 'region' => $this->s3_region,
                 'version' => '2006-03-01',
                 'credentials' => $provider
             ]);
-            
+
             $buckets = $s3Client->listBuckets();
 
             if(!in_array($this->save_bucket_s3, $buckets['Buckets'])){
                 echo "\n Bucket not exits --{$this->save_bucket_s3} !!";
-                
+
                 if(isset($create_bucket)){
                     //Creating S3 Bucket
                     echo "\n creating Bucket -- {$this->save_bucket_s3}";
@@ -325,23 +325,23 @@ class SitePlugger {
                     exit;
                 }
             }
-            
+
             $s3_prefix = "testing";
             $s3Client->uploadDirectory(
-                    $this->save_directory, 
+                    $this->save_directory,
                     $this->save_bucket_s3,
                     $this->s3_prefix ,
                     array(
-//                        'params' => array('ACL' => 'public-read'),
+                       // 'params' => array('ACL' => 'public-read'),
 //                        'concurrency' => 10,
                         'debug' => true
                     )
                 );
-            
-            
-            
-            
-            
+
+
+
+
+
         } catch (AwsException $ex) {
             $this->js_op(["error"=> $ex->getMessage()],true);
         } catch (CredentialsException $ex) {
@@ -351,24 +351,24 @@ class SitePlugger {
 
     public function run_plugger($mode){
         switch($mode){
-            
+
             case "scan_pages":
-//                var_dump($mode);
+               // var_dump($mode);
                 $this->client = new Client();
                 $this->log_file = fopen($this->plugin_path . $this->log_file_name, "a");
                 $this->logged_urls = $this->read_log_lines();
-                
+
                 $this->scan_pages($this->base_site, 0);
                 break;
-            
+
             case "logger_save":
                 $this->client = new Client();
                 $this->log_file = fopen($this->plugin_path . $this->log_file_name, "a");
                 $this->logged_urls = $this->read_log_lines();
-        
+
                 $this->logger_save();
                 break;
-            
+
             case "save_2_s3":
                 $this->write_to_s3_bucket();
             break;

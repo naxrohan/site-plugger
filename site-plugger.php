@@ -24,15 +24,15 @@ register_activation_hook( __FILE__, 'site_plugger_install' );
 function site_plugger_action_javascript() {
     if ( is_admin() ) {
         wp_enqueue_script(
-                'ajax-script', 
-                plugins_url('/script.js', __FILE__), 
+                'ajax-script',
+                plugins_url('/script.js', __FILE__),
                 array('jquery'));
-        
+
         wp_localize_script(
-                'ajax-script', 
-                'ajax_object', 
+                'ajax-script',
+                'ajax_object',
                     array(
-                        'ajax_url' => admin_url('admin-ajax.php'), 
+                        'ajax_url' => admin_url('admin-ajax.php'),
                         'run_type' => array(
                             'scanner', 'loader','saver', 'bucket'
                         )
@@ -59,7 +59,7 @@ function site_plugger_action() {
         $scanner->save_bucket_s3 = get_option('bucket_name');
         $scanner->s3_region = get_option('bucket_region');
         $scanner->s3_prefix = "testing";
-        
+
         $action_step = $_POST['action_step'];
 
         switch ($action_step) {
@@ -68,45 +68,45 @@ function site_plugger_action() {
 
                 break;
             case 'loader':
-                
+
                 $log_lines = $scanner->read_log_lines(false);
                 if(count($log_lines) > 0){
-                    
+
                     $plugger_logs = $wpdb->get_row( "SELECT * FROM wp_site_plugger_logs "
                             . "ORDER BY id DESC", ARRAY_A );
                     if(isset($plugger_logs) && count($plugger_logs) > 0){
-            
+
                         foreach($log_lines as $i => $url_val){
                            $mylink = $wpdb->get_row( "SELECT * FROM wp_site_plugger_logs "
                                    . "WHERE url = $url_val" );
                            if(isset($mylink) && count($mylink) > 0){
                                 $id= $wpdb->insert(
-                                        'wp_site_plugger_logs', 
-                                       array('url' => $url_val,'added' => date("Y-m-d H:i:s"),'state' => 0), 
+                                        'wp_site_plugger_logs',
+                                       array('url' => $url_val,'added' => date("Y-m-d H:i:s"),'state' => 0),
                                        array('%s','%d','%d')
                                 );
                             }
-                        }                        
+                        }
                         $scanner->js_op(["success"=>"part link import Complete"],false);
                     }else {
                         foreach($log_lines as $i => $url_val){
                             $id= $wpdb->insert(
-                                'wp_site_plugger_logs', 
-                                  array('url' => $url_val,'added' => date("Y-m-d H:i:s"),'state' => 0), 
+                                'wp_site_plugger_logs',
+                                  array('url' => $url_val,'added' => date("Y-m-d H:i:s"),'state' => 0),
                                   array('%s','%d','%d')
                             );
                         }
                         $scanner->js_op(["success"=>"full link import Complete"],false);
                     }
-    
+
                 }
 
                 break;
-            
+
             case 'saver':
 
                 break;
-            
+
             case 'bucket':
 
                 break;
@@ -123,7 +123,7 @@ function site_plugger_admin_menu() {
     add_menu_page('Site Plugger','Site Plugger',
             'manage_options','site-plugger-admin',
             'site_plugger_admin_page');
-    
+
     add_submenu_page('site-plugger-admin','Site Plugger',
         'AWS S3 configure','manage_options',
         's3-config','site_plugger_admin_s3_config');
@@ -140,31 +140,27 @@ function site_plugger_admin_page(){
 
     print '<div class="wrap">';
     print "<h1>$title</h1>";
-    
+
     if( isset( $_GET[ 'tab' ] ) ) {
         $active_tab = $_GET[ 'tab' ];
     } else {
         $active_tab = "scanner";
     }
-    
+
     switch ($active_tab) {
         default: case 'scanner':
-            
+
             $scanner = new SitePlugger();
             $log_lines = $scanner->read_log_lines(false);
-            
+
             $total_log_lines = count($log_lines);
             $log_file_name = $scanner->log_file_name;
             $site_name = get_option('base_site');
-            
+
             $tab_name = "Scan Site for new pages";
             $tab_file_name = "admin-scanner.php";
             break;
         case 'saver':
-
-            $saved_links = $wpdb->get_results( "SELECT * FROM wp_site_plugger_logs "
-                            . "ORDER BY id ASC", ARRAY_A ,5);
-                    
 
             $tab_name = "Save Selected pages";
             $tab_file_name = "admin-saver.php";
@@ -177,7 +173,7 @@ function site_plugger_admin_page(){
 
 
     $file = plugin_dir_path( __FILE__ ) . "admin/site-plugger-admin.php";
-   
+
     if ( file_exists( $file ) ){
         require $file;
     }
@@ -205,11 +201,11 @@ function site_plugger_admin_s3_config(){
 }
 
 function site_plugger_add_conf_fields(){
-    
+
     register_setting( 'creds_section', 'bucket_name' );
     register_setting( 'creds_section', 'bucket_region' );
     register_setting( 'creds_section', 's3_credentials' );
-    
+
     register_setting( 'folder_section', 'base_site' , 'base_site_validation' );
     register_setting( 'folder_section', 'replace_site', 'replace_site_validation');
     register_setting( 'folder_section', 'save_folder' );
@@ -217,7 +213,7 @@ function site_plugger_add_conf_fields(){
     add_settings_section("creds_section", "AWS S3 bucket details","display_S3_options_content", "s3-config");
     add_settings_section("folder_section", "Local & Cloud Folders","display_folder_options_content", "folder-config");
 
-    
+
     add_settings_field("base_site", "Base Site URL", "base_site_form_element", "folder-config", "folder_section");
     add_settings_field("replace_site", "Replace Site URL", "replace_site_form_element", "folder-config", "folder_section");
     add_settings_field('save_folder','Local Folder name','save_folder_form_element',"folder-config",'folder_section' );
@@ -230,7 +226,7 @@ function site_plugger_add_conf_fields(){
 function site_plugger_install(){
     global $wpdb;
 
-    $table_name = $wpdb->prefix . "site_plugger_logs";    
+    $table_name = $wpdb->prefix . "site_plugger_logs";
 
     $sql = "CREATE TABLE $table_name (
         `id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -243,5 +239,7 @@ function site_plugger_install(){
 
     dbDelta($sql);
 }
+
+
 
 ?>
